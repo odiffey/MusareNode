@@ -157,6 +157,8 @@ module.exports = {
 					if (songList.indexOf(songId) !== -1) playlist.push(songId);
 				});
 
+				playlist = utils.shuffle(playlist);
+
 				_this.calculateOfficialPlaylistList(station._id, playlist, () => {
 					next(null, playlist);
 				});
@@ -215,7 +217,10 @@ module.exports = {
 			},
 
 			(station, next) => {
-				if (!station) return next('Station not found');
+				if (!station) {
+					cache.hdel('stations', stationId);
+					return next('Station not found');
+				}
 				cache.hset('stations', stationId, station, next);
 			}
 

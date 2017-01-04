@@ -20,9 +20,10 @@ cache.sub('queue.removedSong', songId => {
 	utils.emitToRoom('admin.queue', 'event:admin.queueSong.removed', songId);
 });
 
-cache.sub('queue.updatedSong', songId => {
-	//TODO Retrieve new Song object
-	utils.emitToRoom('admin.queue', 'event:queueSong.updated', { songId });
+cache.sub('queue.update', songId => {
+	db.models.queueSong.findOne({_id: songId}, (err, song) => {
+		utils.emitToRoom('admin.queue', 'event:admin.queueSong.updated', song);
+	});
 });
 
 module.exports = {
@@ -42,9 +43,22 @@ module.exports = {
 			if (err) {
 				logger.error("QUEUE_INDEX", `Indexing queuesongs failed. "${err.message}"`);
 				return cb({status: 'failure', message: 'Something went wrong.'});
+			} else {
+				module.exports.getSet(session, 1, result => {
+					logger.success("QUEUE_INDEX", `Indexing queuesongs successful.`);
+					return cb({
+						songs: result,
+						maxLength: songs.length
+					});
+				});
 			}
-			logger.success("QUEUE_INDEX", `Indexing queuesongs successful.`);
-			return cb(songs);
+		});
+	}),
+
+	getSet: hooks.adminRequired((session, set, cb) => {
+		db.models.queueSong.find({}).limit(50 * set).exec((err, songs) => {
+			if (err) throw err;
+			cb(songs.splice(Math.max(songs.length - 50, 0)));
 		});
 	}),
 
@@ -79,7 +93,7 @@ module.exports = {
 				logger.error("QUEUE_UPDATE", `Updating queuesong "${songId}" failed for user ${userId}. "${err.message}"`);
 				return cb({status: 'failure', message: error});
 			}
-			cache.pub('queue.updatedSong', songId);
+			cache.pub('queue.update', songId);
 			logger.success("QUEUE_UPDATE", `User "${userId}" successfully update queuesong "${songId}".`);
 			return cb({status: 'success', message: 'Successfully updated song.'});
 		});
@@ -159,6 +173,18 @@ module.exports = {
 				song.save(err => {
 					if (err) return next(err);
 					next(null, newSong);
+				});
+			},
+			(newSong, next) => {
+				db.models.user.findOne({ _id: userId }, (err, user) => {
+					if (err) next(err, newSong);
+					else {
+						user.statistics.songsRequested = user.statistics.songsRequested + 1;
+						user.save(err => {
+							if (err) return next(err, newSong);
+							else next(null, newSong);
+						});
+					}
 				});
 			}
 		], (err, newSong) => {

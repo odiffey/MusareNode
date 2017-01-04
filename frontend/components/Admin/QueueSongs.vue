@@ -35,6 +35,10 @@
 			</tbody>
 		</table>
 	</div>
+	<nav class="pagination">
+		<a class="button" href='#' @click='getSet(position - 1)' v-if='position > 1'><i class="material-icons">navigate_before</i></a>
+		<a class="button" href='#' @click='getSet(position + 1)' v-if='maxPosition > position'><i class="material-icons">navigate_next</i></a>
+	</nav>
 	<edit-song v-show='modals.editSong'></edit-song>
 </template>
 
@@ -48,6 +52,8 @@
 		components: { EditSong },
 		data() {
 			return {
+				position: 1,
+				maxPosition: 1,
 				searchQuery: '',
 				songs: [],
 				modals: { editSong: false }
@@ -61,6 +67,13 @@
 		methods: {
 			toggleModal: function () {
 				this.modals.editSong = !this.modals.editSong;
+			},
+			getSet: function (position) {
+				let _this = this;
+				this.socket.emit('queueSongs.getSet', position, data => {
+					_this.songs = data;
+					this.position = position;
+				});
 			},
 			edit: function (song, index) {
 				this.$broadcast('editSong', song, index, 'queueSongs');
@@ -78,7 +91,8 @@
 			init: function() {
 				let _this = this;
 				_this.socket.emit('queueSongs.index', data => {
-					_this.songs = data;
+					_this.songs = data.songs;
+					_this.maxPosition = Math.round(data.maxLength / 50);
 				});
 				_this.socket.emit('apis.joinAdminRoom', 'queue', data => {});
 			}
@@ -96,6 +110,14 @@
 						_this.songs = _this.songs.filter(function(song) {
 							return song._id !== songId;
 						});
+					});
+					_this.socket.on('event:admin.queueSong.updated', updatedSong => {
+						for (let i = 0; i < _this.songs.length; i++) {
+							let song = _this.songs[i];
+							if (song._id === updatedSong._id) {
+								_this.songs.$set(i, updatedSong);
+							}
+						}
 					});
 				}
 				io.onConnect(() => {

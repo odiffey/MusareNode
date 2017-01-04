@@ -26,6 +26,7 @@
 					</div>
 					&nbsp;&nbsp;Login with GitHub
 				</a>
+				<a href='#' @click='resetPassword()'>Forgot password?</a>
 			</footer>
 		</div>
 	</div>
@@ -35,11 +36,19 @@
 	export default {
 		methods: {
 			toggleModal: function () {
-				this.$dispatch('toggleModal', 'login');
+				if (this.$router._currentRoute.path === '/login') {
+					location.href = '/';
+				} else {
+					this.$dispatch('toggleModal', 'login');
+				}
 			},
 			submitModal: function () {
 				this.$dispatch('login');
 				this.toggleModal();
+			},
+			resetPassword: function () {
+				this.toggleModal();
+				this.$router.go('/reset_password');
 			}
 		},
 		events: {

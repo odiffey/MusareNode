@@ -4,6 +4,7 @@
 		<div class="container">
 			<img class="avatar" src="/assets/notes.png"/>
 			<h2 class="has-text-centered username">@{{user.username}}</h2>
+			<h5>A member since {{user.createdAt}}</h5>
 			<div class="admin-functionality" v-if="user.role == 'admin'">
 				<a class="button is-small is-info is-outlined" href='#' @click="changeRank('admin')" v-if="user.role == 'default'">Promote to Admin</a>
 				<a class="button is-small is-danger is-outlined" href='#' @click="changeRank('default')" v-else>Demote to User</a>
@@ -11,7 +12,7 @@
 			<nav class="level">
 				<div class="level-item has-text-centered">
 					<p class="heading">Rank</p>
-					<p class="title">User</p>
+					<p class="title role">{{user.role}}</p>
 				</div>
 				<div class="level-item has-text-centered">
 					<p class="heading">Songs Requested</p>
@@ -47,7 +48,7 @@
 		},
 		methods: {
 			changeRank(newRank) {
-				this.socket.emit('users.update', this.$route.params.username, 'role', ((newRank == 'admin') ? 'admin' : 'default'), res => {
+				this.socket.emit('users.updateRole', this.user._id, 'role', ((newRank == 'admin') ? 'admin' : 'default'), res => {
 					if (res.status == 'error') Toast.methods.addToast(res.message, 2000);
 					else this.user.role = newRank; Toast.methods.addToast(`User ${this.$route.params.username}'s rank has been changed to: ${newRank}`, 2000);
 				});
@@ -59,7 +60,11 @@
 				_this.socket = socket;
 				_this.socket.emit('users.findByUsername', _this.$route.params.username, res => {
 					if (res.status == 'error') this.$router.go('/404');
-					else _this.user = res.data; _this.isUser = true;
+					else {
+						_this.user = res.data;
+						this.user.createdAt = moment(this.user.createdAt).format('LL');
+						_this.isUser = true;
+					}
 				});
 			});
 		},
@@ -79,9 +84,15 @@
 		margin: auto;
 	}
 
-	.level {
-		margin-top: 40px;
+	h5 {
+		text-align: center;
+		margin-bottom: 25px;
+		font-size: 17px;
 	}
+
+	.role { text-transform: capitalize; }
+
+	.level { margin-top: 40px; }
 
 	.admin-functionality {
 		text-align: center;

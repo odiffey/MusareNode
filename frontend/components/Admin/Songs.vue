@@ -47,7 +47,10 @@
 		components: { EditSong },
 		data() {
 			return {
+				position: 1,
+				maxPosition: 1,
 				songs: [],
+				searchQuery: '',
 				modals: { editSong: false },
 				editing: {
 					index: 0,
@@ -72,18 +75,29 @@
 			edit: function (song, index) {
 				this.$broadcast('editSong', song, index, 'songs');
 			},
-			remove: function (id, index) {
+			remove: function (id) {
 				this.socket.emit('songs.remove', id, res => {
 					if (res.status == 'success') Toast.methods.addToast(res.message, 4000);
 					else Toast.methods.addToast(res.message, 8000);
 				});
 			},
-			init: function() {
+			getSet: function () {
 				let _this = this;
-				_this.socket.emit('songs.index', data => {
-					_this.songs = data;
+				_this.socket.emit('songs.getSet', _this.position, data => {
+					data.forEach(song => {
+						_this.songs.push(song);
+					});
+					_this.position = _this.position + 1;
+					if (_this.maxPosition > _this.position - 1) _this.getSet();
 				});
-				_this.socket.emit('apis.joinAdminRoom', 'songs', data => {});
+			},
+			init: function () {
+				let _this = this;
+				_this.socket.emit('songs.length', length => {
+					_this.maxPosition = Math.round(length / 15);
+					_this.getSet();
+				});
+				_this.socket.emit('apis.joinAdminRoom', 'songs', () => {});
 			}
 		},
 		ready: function () {
@@ -99,6 +113,14 @@
 						_this.songs = _this.songs.filter(function(song) {
 							return song._id !== songId;
 						});
+					});
+					_this.socket.on('event:admin.song.updated', updatedSong => {
+						for (let i = 0; i < _this.songs.length; i++) {
+							let song = _this.songs[i];
+							if (song._id === updatedSong._id) {
+								_this.songs.$set(i, updatedSong);
+							}
+						}
 					});
 				}
 				io.onConnect(() => {

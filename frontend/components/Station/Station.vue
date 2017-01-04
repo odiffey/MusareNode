@@ -90,6 +90,7 @@
 	import OfficialHeader from './OfficialHeader.vue';
 	import CommunityHeader from './CommunityHeader.vue';
 	import io from '../../io';
+	import auth from '../../auth';
 
 	export default {
 		data() {
@@ -156,6 +157,10 @@
 								local.player.setVolume(volume);
 								if (volume > 0) local.player.unMute();
 								local.playVideo();
+							},
+							'onError': function(err) {
+								console.log("iframe error", err);
+								local.voteSkipStation();
 							},
 							'onStateChange': function (event) {
 								if (event.data === 1 && local.videoLoading === true) {
@@ -400,13 +405,20 @@
 		},
 		ready: function() {
 			let _this = this;
+
 			Date.currently = () => {
 				return new Date().getTime() + _this.systemDifference;
 			};
+
 			_this.stationId = _this.$route.params.id;
+
 			window.stationInterval = 0;
 
-			io.getSocket((socket) => {
+			auth.getStatus(isLoggedIn => {
+				if (!isLoggedIn) _this.$router.go('/404');
+			});
+
+			io.getSocket(socket => {
 				_this.socket = socket;
 
 				io.removeAllListeners();
@@ -420,6 +432,7 @@
 					if (res.status === 'error') {
 						_this.$router.go('/404');
 						Toast.methods.addToast(res.message, 3000);
+						console.log('yup')
 					}
 				});
 

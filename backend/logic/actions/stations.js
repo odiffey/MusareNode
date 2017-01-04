@@ -134,9 +134,11 @@ module.exports = {
 	getPlaylist: (session, stationId, cb) => {
 		stations.getStation(stationId, (err, station) => {
 			if (err) return cb({ status: 'failure', message: 'Something went wrong when getting the station.' });
+			if (!station) return cb({ status: 'failure', message: 'Station not found..' });
 			if (station.type === 'official') {
 				cache.hget("officialPlaylists", stationId, (err, playlist) => {
 					if (err) return cb({ status: 'failure', message: 'Something went wrong when getting the playlist.' });
+					if (!playlist) return cb({ status: 'failure', message: 'Playlist not found.' });
 					cb({ status: 'success', data: playlist.songs })
 				})
 			} else cb({ status: 'failure', message: 'This is not an official station.' })
@@ -399,7 +401,7 @@ module.exports = {
 
 	create: hooks.loginRequired((session, data, cb) => {
 		data._id = data._id.toLowerCase();
-		let blacklist = ["country", "edm", "musare", "hip-hop", "rap", "top-hits", "todays-hits", "old-school", "christmas", "about", "support", "staff", "help", "news", "terms", "privacy", "profile", "c", "community", "tos", "login", "register", "p", "official", "o", "trap", "faq", "team", "donate", "buy", "shop", "forums", "explore", "settings", "admin"];
+		let blacklist = ["country", "edm", "musare", "hip-hop", "rap", "top-hits", "todays-hits", "old-school", "christmas", "about", "support", "staff", "help", "news", "terms", "privacy", "profile", "c", "community", "tos", "login", "register", "p", "official", "o", "trap", "faq", "team", "donate", "buy", "shop", "forums", "explore", "settings", "admin", "auth", "reset_password"];
 		async.waterfall([
 
 			(next) => {

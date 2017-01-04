@@ -30,7 +30,7 @@
 						<p>
 							<strong>{{ song.title }}</strong>
 							<br>
-							<small>{{ song.artists }}</small>
+							<small>{{ song.artists.join(', ') }}</small>
 						</p>
 					</div>
 				</div>
@@ -104,13 +104,9 @@
 		align-items: center;
 	}
 
-	.content p strong {
-		word-break: break-word;
-	}
+	.content p strong { word-break: break-word; }
 	
-	.content p small {
-		word-break: break-all;
-	}
+	.content p small { word-break: break-word; }
 
 	.add-to-queue {
 		width: 100%;
